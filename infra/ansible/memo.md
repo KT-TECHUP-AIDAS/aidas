@@ -28,6 +28,7 @@
 | qwen2.5 모델 | ~4.7 GB |
 | phi3.5 모델 | ~2.2 GB |
 | Docker CE + containerd | ~500 MB |
+| Promtail 바이너리 | ~90 MB |
 | **최소 여유 공간 (권장)** | **20 GB 이상** |
 
 > 모델 Pull 중 디스크가 가득 차면 설치가 중단됨 — 여유 공간 충분히 확보 필수
@@ -59,6 +60,9 @@ yum-utils / device-mapper-persistent-data / lvm2 / zstd / curl
 # Docker CE
 docker-ce / docker-ce-cli / containerd.io
 docker-buildx-plugin / docker-compose-plugin
+
+# Promtail 압축 해제
+unzip
 ```
 
 ---
@@ -204,6 +208,21 @@ which ollama && ollama --version && systemctl is-active ollama && curl -s http:/
 
 # 설치된 모델 목록
 ollama list
+```
+
+---
+
+### Promtail 확인
+
+```bash
+# 바이너리 존재 확인
+which promtail
+
+# 서비스 상태
+systemctl is-active promtail
+
+# 설정 파일 확인
+cat /etc/promtail/config.yml
 ```
 
 ---

@@ -19,7 +19,6 @@
     aidas_log_dir: /var/log/aidas
 
   tasks:
-
     # -------------------------------------------------------------------------
     # Docker 설치
     # -------------------------------------------------------------------------
@@ -46,6 +45,7 @@
           - docker-buildx-plugin
           - docker-compose-plugin
         state: present
+        allowerasing: true
 
     - name: Docker 서비스 활성화 및 시작
       systemd:
@@ -170,4 +170,96 @@
     - name: aidas-sre-phi 커스텀 모델 생성 (Modelfile_phi 항상 반영)
       command: ollama create {{ aidas_phi_model }} -f {{ modelfile_phi_dest }}
       changed_when: true
+
+    # -------------------------------------------------------------------------
+    # Promtail 설치
+    # -------------------------------------------------------------------------
+    - name: Promtail 설치 여부 확인
+      stat:
+        path: "{{ promtail_install_dir }}/promtail"
+      register: promtail_bin
+
+    - name: unzip 패키지 설치
+      dnf:
+        name: unzip
+        state: present
+
+    - name: Promtail 바이너리 다운로드
+      get_url:
+        url: "https://github.com/grafana/loki/releases/download/v{{ promtail_version }}/promtail-linux-amd64.zip"
+        dest: "/tmp/promtail-{{ promtail_version }}.zip"
+        mode: "0644"
+      when: not promtail_bin.stat.exists
+
+    - name: Promtail 압축 해제
+      unarchive:
+        src: "/tmp/promtail-{{ promtail_version }}.zip"
+        dest: /tmp/
+        remote_src: true
+        creates: /tmp/promtail-linux-amd64
+      when: not promtail_bin.stat.exists
+
+    - name: Promtail 바이너리 배치
+      copy:
+        src: /tmp/promtail-linux-amd64
+        dest: "{{ promtail_install_dir }}/promtail"
+        mode: "0755"
+        remote_src: true
+        force: false
+      when: not promtail_bin.stat.exists
+
+    - name: Promtail 설정 및 데이터 디렉토리 생성
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ promtail_config_dir }}"
+        - "{{ promtail_positions_dir }}"
+        - "{{ aidas_log_dir }}"
+
+    - name: Promtail 설정 파일 배포
+      template:
+        src: templates/promtail-config.yml.j2
+        dest: "{{ promtail_config_dir }}/config.yml"
+        mode: "0644"
+      notify: Promtail 재시작
+
+    - name: Promtail systemd 서비스 파일 배포
+      copy:
+        dest: /etc/systemd/system/promtail.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Promtail - Loki Log Shipping Agent
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          User=root
+          ExecStart={{ promtail_install_dir }}/promtail -config.file={{ promtail_config_dir }}/config.yml
+          Restart=on-failure
+          RestartSec=5s
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: Promtail 재시작
+
+    - name: systemd 데몬 리로드
+      systemd:
+        daemon_reload: true
+
+    - name: Promtail 서비스 활성화 및 시작
+      systemd:
+        name: promtail
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Promtail 재시작
+      systemd:
+        name: promtail
+        state: restarted
+        daemon_reload: true
 
