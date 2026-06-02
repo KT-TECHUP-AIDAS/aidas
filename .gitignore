@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -8,7 +7,6 @@ __pycache__/
 *.so
 
 # Distribution / packaging
-=======
 # ==========================================
 # 1. Security & Credentials (최우선 보호)
 # ==========================================
@@ -29,7 +27,6 @@ secrets/
 __pycache__/
 *.py[cod]
 *$py.class
->>>>>>> c95a3af (기초 파일 생성)
 .Python
 build/
 develop-eggs/
@@ -49,7 +46,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-<<<<<<< HEAD
 # PyInstaller
 #   Usually these files are written by a python script from a template
 #   before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -240,7 +236,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-=======
 # 가상환경 폴더
 .venv/
 venv/
@@ -284,4 +279,3 @@ Desktop.ini
 !.vscode/extensions.json
 *.code-workspace
 .history/
->>>>>>> c95a3af (기초 파일 생성)
