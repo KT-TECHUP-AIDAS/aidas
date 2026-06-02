@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-# aidas
-AI-based Incident Detection and Automated Support
-=======
 
-# AIDAS (AI-based Incident Detection and Automated Support)
+# 🔮🛡️ AIDAS (AI-based Incident Detection and Automated Support)
 > AI 기반 장애 로그 자동 탐지 및 알림 운영 시스템
 > 클라우드 컨테이너 인프라의 장애 로그를 온프레미스 로컬 AI(Ollama)로 분석하여 원인 요약과 조치 방안을 Slack으로 실시간 전달하는 지능형 관제 시스템
 
@@ -11,12 +7,11 @@ AI-based Incident Detection and Automated Support
 
 ## 1. 팀 소개 (Team Information)
 ### 팀명: 쉬지마EC 2
-- 이재혁 (팀장): 요구사항 분석, 프로젝트 총괄 및 일정 관리, 온프레미스 환경 내부 로컬 AI 엔진(Ollama) 구축 및 프롬프트 최적화 전담
-- 부학성 (부팀장): 요구사항 분석, 하이브리드 인프라 아키텍처 설계 총괄, 개방형 관제 파이프라인(PLG Stack) 및 AWS CloudWatch 통합 연동 전담
-- 박다정 (팀원): 요구사항 분석, Terraform 기반 AWS 클라우드 인프라 IaC 코드 자동화 및 프로비저닝 담당
-- 이창원 (팀원): 요구사항 분석, FastAPI 기반 관찰 대상 웹 서비스 및 4대 장애 유발 제어판 백엔드/프론트엔드 개발 담당
-- 김민규 (팀원): 요구사항 분석, Ansible Playbook 기반 인프라 배포 자동화, GitHub Actions CI/CD 구축 및 통합 테스트 담당
-
+- **이재혁**(팀장): 요구사항 분석, 프로젝트 총괄 및 일정 관리, 온프레미스 환경 내부 로컬 AI 엔진(Ollama) 구축 및 프롬프트 최적화 전담.
+- **부학성**(부팀장): 요구사항 분석, 하이브리드 인프라 아키텍처 설계 총괄, 개방형 관제 파이프라인(PLG Stack) 및 AWS CloudWatch 통합 연동 전담.
+- **박다정**: 요구사항 분석, Terraform 기반 AWS 클라우드 인프라(VPC, EC2, ALB, Route53, S3, CloudFront) IaC 코드 자동화 및 프로비저닝 담당.
+- **이창원:** 요구사항 분석, FastAPI 기반 관찰 대상 웹 서비스 및 4대 장애 유발 제어판(Incident Injector) 백엔드/프론트엔드 개발 담당.
+- **김민규**: 요구사항 분석, Ansible Playbook 기반 인프라 배포 자동화(Docker Swarm 클러스터 구성), GitHub Actions CI/CD 구축 및 통합 테스트 담당.
 ---
 
 ## 📌 2. 프로젝트 개요 (Executive Summary)
@@ -128,4 +123,3 @@ aidas/
 - 승인 조건: 최소 1명 이상의 팀원에게 리뷰 및 승인(Approve)을 받아야 머지 가능
 
 ---
->>>>>>> c95a3af (기초 파일 생성)
