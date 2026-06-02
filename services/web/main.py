@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.db import engine, Base, get_db
 from models import Product
-
+from app.routers import incidents
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] AIDAS_WEB - %(message)s"
@@ -15,7 +15,7 @@ logger = logging.getLogger("aidas")
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(title="AIDAS Web Architecture")
-
+app.include_router(incidents.router, prefix="/api/v1")
 templates = Jinja2Templates(directory="app/templates")
 
 @app.on_event("startup")
