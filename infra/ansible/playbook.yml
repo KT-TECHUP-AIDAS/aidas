@@ -3,15 +3,15 @@
   hosts: localhost ### 테스트는 localhost로 진행후에 변경 예정입니다
   become: true
   vars:
-    ollama_model: "llama3"
-    aidas_model: "aidas-sre"
-    modelfile_dest: /etc/ollama/Modelfile_llama
-    qwen_model: "qwen2.5"
-    aidas_qwen_model: "aidas-sre-qwen"
-    modelfile_qwen_dest: /etc/ollama/Modelfile_qwen
-    phi_model: "phi3.5"
-    aidas_phi_model: "aidas-sre-phi"
-    modelfile_phi_dest: /etc/ollama/Modelfile_phi
+    # ollama_model: "llama3"
+    # aidas_model: "aidas-sre"
+    # modelfile_dest: /etc/ollama/Modelfile_llama
+    # qwen_model: "qwen2.5"
+    # aidas_qwen_model: "aidas-sre-qwen"
+    # modelfile_qwen_dest: /etc/ollama/Modelfile_qwen
+    # phi_model: "phi3.5"
+    # aidas_phi_model: "aidas-sre-phi"
+    # modelfile_phi_dest: /etc/ollama/Modelfile_phi
     promtail_version: "2.9.9"
     promtail_install_dir: /usr/local/bin
     promtail_config_dir: /etc/promtail
@@ -60,116 +60,116 @@
         append: true
 
     # -------------------------------------------------------------------------
-    # Ollama 설치
+    # Ollama 설치 (비활성화)
     # -------------------------------------------------------------------------
-    - name: Ollama 설치 의존성 패키지 설치
-      dnf:
-        name:
-          - zstd
-          - curl
-        state: present
+    # - name: Ollama 설치 의존성 패키지 설치
+    #   dnf:
+    #     name:
+    #       - zstd
+    #       - curl
+    #     state: present
 
-    - name: Ollama 설치 여부 확인
-      command: which ollama
-      register: ollama_check
-      changed_when: false
-      failed_when: false
+    # - name: Ollama 설치 여부 확인
+    #   command: which ollama
+    #   register: ollama_check
+    #   changed_when: false
+    #   failed_when: false
 
-    - name: Ollama 공식 설치 스크립트 실행
-      shell:
-        cmd: curl -fsSL https://ollama.com/install.sh | sh
-      when: ollama_check.rc != 0
-      changed_when: true
+    # - name: Ollama 공식 설치 스크립트 실행
+    #   shell:
+    #     cmd: curl -fsSL https://ollama.com/install.sh | sh
+    #   when: ollama_check.rc != 0
+    #   changed_when: true
 
-    - name: Ollama systemd 서비스 활성화 및 시작
-      systemd:
-        name: ollama
-        state: started
-        enabled: true
-        daemon_reload: true
+    # - name: Ollama systemd 서비스 활성화 및 시작
+    #   systemd:
+    #     name: ollama
+    #     state: started
+    #     enabled: true
+    #     daemon_reload: true
 
-    - name: Ollama API 포트 응답 대기 (최대 60초)
-      wait_for:
-        host: 127.0.0.1
-        port: 11434
-        timeout: 60
-
-    # -------------------------------------------------------------------------
-    # Llama3 모델 Pull
-    # -------------------------------------------------------------------------
-    - name: 설치된 Ollama 모델 목록 조회
-      command: ollama list
-      register: ollama_model_list
-      changed_when: false
-
-    - name: Llama3 모델 Pull (미설치 시에만 실행)
-      command: ollama pull {{ ollama_model }}
-      when: ollama_model not in ollama_model_list.stdout
-      changed_when: true
-      tags: llama3_pull
+    # - name: Ollama API 포트 응답 대기 (최대 60초)
+    #   wait_for:
+    #     host: 127.0.0.1
+    #     port: 11434
+    #     timeout: 60
 
     # -------------------------------------------------------------------------
-    # AIDAS 커스텀 모델 생성 - Llama3
+    # Llama3 모델 Pull (비활성화)
     # -------------------------------------------------------------------------
-    - name: Modelfile 저장 디렉토리 생성
-      file:
-        path: /etc/ollama
-        state: directory
-        mode: "0755"
+    # - name: 설치된 Ollama 모델 목록 조회
+    #   command: ollama list
+    #   register: ollama_model_list
+    #   changed_when: false
 
-    - name: Modelfile_llama 배포
-      copy:
-        src: templates/Modelfile_llama
-        dest: "{{ modelfile_dest }}"
-        mode: "0644"
-
-    - name: aidas-sre 커스텀 모델 생성 (Modelfile_llama 항상 반영)
-      command: ollama create {{ aidas_model }} -f {{ modelfile_dest }}
-      changed_when: true
+    # - name: Llama3 모델 Pull (미설치 시에만 실행)
+    #   command: ollama pull {{ ollama_model }}
+    #   when: ollama_model not in ollama_model_list.stdout
+    #   changed_when: true
+    #   tags: llama3_pull
 
     # -------------------------------------------------------------------------
-    # Qwen2.5 모델 Pull
+    # AIDAS 커스텀 모델 생성 - Llama3 (비활성화)
     # -------------------------------------------------------------------------
-    - name: Qwen2.5 모델 Pull (미설치 시에만 실행)
-      command: ollama pull {{ qwen_model }}
-      when: "'qwen2.5' not in ollama_model_list.stdout"
-      changed_when: true
-      tags: qwen_pull
+    # - name: Modelfile 저장 디렉토리 생성
+    #   file:
+    #     path: /etc/ollama
+    #     state: directory
+    #     mode: "0755"
+
+    # - name: Modelfile_llama 배포
+    #   copy:
+    #     src: templates/Modelfile_llama
+    #     dest: "{{ modelfile_dest }}"
+    #     mode: "0644"
+
+    # - name: aidas-sre 커스텀 모델 생성 (Modelfile_llama 항상 반영)
+    #   command: ollama create {{ aidas_model }} -f {{ modelfile_dest }}
+    #   changed_when: true
 
     # -------------------------------------------------------------------------
-    # AIDAS 커스텀 모델 생성 - Qwen
+    # Qwen2.5 모델 Pull (비활성화)
     # -------------------------------------------------------------------------
-    - name: Modelfile_qwen 배포
-      copy:
-        src: templates/Modelfile_qwen
-        dest: "{{ modelfile_qwen_dest }}"
-        mode: "0644"
-
-    - name: aidas-sre-qwen 커스텀 모델 생성 (Modelfile_qwen 항상 반영)
-      command: ollama create {{ aidas_qwen_model }} -f {{ modelfile_qwen_dest }}
-      changed_when: true
+    # - name: Qwen2.5 모델 Pull (미설치 시에만 실행)
+    #   command: ollama pull {{ qwen_model }}
+    #   when: "'qwen2.5' not in ollama_model_list.stdout"
+    #   changed_when: true
+    #   tags: qwen_pull
 
     # -------------------------------------------------------------------------
-    # Phi3.5 모델 Pull
+    # AIDAS 커스텀 모델 생성 - Qwen (비활성화)
     # -------------------------------------------------------------------------
-    - name: Phi3.5 모델 Pull (미설치 시에만 실행)
-      command: ollama pull {{ phi_model }}
-      when: "'phi3.5' not in ollama_model_list.stdout"
-      changed_when: true
-      tags: phi_pull
+    # - name: Modelfile_qwen 배포
+    #   copy:
+    #     src: templates/Modelfile_qwen
+    #     dest: "{{ modelfile_qwen_dest }}"
+    #     mode: "0644"
+
+    # - name: aidas-sre-qwen 커스텀 모델 생성 (Modelfile_qwen 항상 반영)
+    #   command: ollama create {{ aidas_qwen_model }} -f {{ modelfile_qwen_dest }}
+    #   changed_when: true
 
     # -------------------------------------------------------------------------
-    # AIDAS 커스텀 모델 생성 - Phi
+    # Phi3.5 모델 Pull (비활성화)
     # -------------------------------------------------------------------------
-    - name: Modelfile_phi 배포
-      copy:
-        src: templates/Modelfile_phi
-        dest: "{{ modelfile_phi_dest }}"
-        mode: "0644"
+    # - name: Phi3.5 모델 Pull (미설치 시에만 실행)
+    #   command: ollama pull {{ phi_model }}
+    #   when: "'phi3.5' not in ollama_model_list.stdout"
+    #   changed_when: true
+    #   tags: phi_pull
 
-    - name: aidas-sre-phi 커스텀 모델 생성 (Modelfile_phi 항상 반영)
-      command: ollama create {{ aidas_phi_model }} -f {{ modelfile_phi_dest }}
-      changed_when: true
+    # -------------------------------------------------------------------------
+    # AIDAS 커스텀 모델 생성 - Phi (비활성화)
+    # -------------------------------------------------------------------------
+    # - name: Modelfile_phi 배포
+    #   copy:
+    #     src: templates/Modelfile_phi
+    #     dest: "{{ modelfile_phi_dest }}"
+    #     mode: "0644"
+
+    # - name: aidas-sre-phi 커스텀 모델 생성 (Modelfile_phi 항상 반영)
+    #   command: ollama create {{ aidas_phi_model }} -f {{ modelfile_phi_dest }}
+    #   changed_when: true
 
     # -------------------------------------------------------------------------
     # Promtail 설치

@@ -8,10 +8,7 @@ logger = logging.getLogger("aidas")
 
 @router.post("/incident/{incident_code}")
 def trigger_incident(incident_code: str):
-<<<<<<< HEAD
-=======
     # 📢 [핵심] 조장님 말씀대로 부학성/이재혁 님이 캐치할 표준 로그는 그대로 쾅 찍어줍니다!
->>>>>>> adc6acf467f2ac19773a4e8155cc86ed87b2accd
     logger.error(f"[FATAL] 장애 강제 주입 시작: {incident_code}")
     
     try:
