@@ -27,10 +27,15 @@ terraform {
   }
 }
 
+# 기본 provider (서울)
+provider "aws" {
+  region = var.region   
+}
+
+# CloudFront ACM용 (버지니아 필수)
 provider "aws" {
   alias  = "us_east_1"
-  region = var.region
-  profile = "aidasProject2"
+  region = "us-east-1"
 }
 
 provider "tailscale" {

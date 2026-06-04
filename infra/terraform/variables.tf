@@ -1,7 +1,7 @@
 # [Terraform 변수] AWS 리전 정보, 인스턴스 사양, 서브넷 대역 등 IaC 코드에서 공통으로 사용할 입력 변수들을 정의한 파일입니다.
-## 이미지 정보...미리 가져와야 속도 줄듯...
+# variables.tf
 variable "project_name" { default = "aidas" }
-variable "region" { default = "us-east-1" }
+variable "region" { default = "ap-northeast-2" }
 variable "instance_type" { default = "t3.micro" }
 
 # Auto Scaling 그룹에서 최소 및 최대 인스턴스 수
