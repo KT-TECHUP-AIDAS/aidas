@@ -8,7 +8,7 @@ logger = logging.getLogger("aidas")
 
 # 장애 주입 엔드포인트
 @router.post("/incident/{incident_code}")
-def trigger_incident(incident_codecode: str):
+def trigger_incident(incident_code: str):
     logger.error(f"[FATAL] 장애 강제 주입 시작: {incident_code}")
     
     try:
