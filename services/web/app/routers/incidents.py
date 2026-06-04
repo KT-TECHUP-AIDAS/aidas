@@ -1,4 +1,3 @@
-#/home/user1/aidas/services/web/app/routers/incidents.py
 from fastapi import APIRouter, HTTPException
 import os
 import logging
@@ -13,10 +12,17 @@ def trigger_incident(incident_code: str):
     logger.error(f"[FATAL] 장애 강제 주입 시작: {incident_code}")
     
     try:
-        if incident_code == "disk-full":
-            # 🛡️ 안전 모드: 진짜 파일을 쓰지 않고, 로그와 응답만 성공한 척 속입니다.
-            logger.error("[ERROR] Disk 공간 고갈 임계치 초과! (Filesystem: /dev/xvda1, Usage: 99%)")
-            return {"message": "Disk Full 모의 장애 주입 완료!"}
+        if incident_code == "az-failure":
+            # 🌐 AWS 가용 영역(AZ) 장애 시뮬레이션 (ALB 헬스체크 실패 및 트래픽 전환 재현)
+            logger.error("ERROR: Health check failed for target i-0abc123def456 in ap-northeast-2a")
+            logger.error("ERROR: ALB target deregistered: instance unavailable in ap-northeast-2a")
+            logger.warning("WARN: Availability Zone ap-northeast-2a is unreachable")
+            logger.error("ERROR: Failover triggered: rerouting traffic to ap-northeast-2c")
+            logger.error("ERROR: Service degraded: response latency exceeded threshold (5000ms)")
+            
+            # ALB 헬스체크 지연 상황을 시뮬레이션하기 위해 5초간 대기 후 응답
+            time.sleep(5)
+            return {"message": "AZ Failure (ap-northeast-2a) 모의 장애 주입 및 트래픽 전환 시뮬레이션 완료!"}
         
         elif incident_code == "oom":
             # 🛡️ 안전 모드: 진짜 메모리를 터뜨리지 않고, 시뮬레이션 로그만 남깁니다.
