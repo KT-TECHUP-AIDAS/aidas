@@ -56,7 +56,7 @@ variable "slack_webhook_url" {
   description = "Slack Incoming Webhook URL"
   type        = string
   sensitive   = true  # 플랜 출력에서 숨김
-
+ 
 }
 variable "github_token" {
   description = "GitHub Personal Access Token"
