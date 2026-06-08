@@ -1,1 +1,54 @@
-# [GitHub Actions CI] 코드 변경 시 빌드, 테스트를 수행하고 Docker 이미지를 생성하는 자동화 파이프라인 파일입니다.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [master]
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # JOB 1. lint — Python 코드 품질 검사
+  # 모든 브랜치 push / PR 마다 실행
+  # flake8 실패 시 build-test 진행하지 않음
+  # ────────────────────────────────────────────────────────────────
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 환경 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: 의존성 및 flake8 설치
+        run: |
+          pip install -r services/web/requirements.txt
+          pip install flake8
+
+      - name: flake8 코드 품질 검사
+        run: |
+          flake8 services/web/ \
+            --max-line-length=120 \
+            --exclude=services/web/app/templates \
+            --statistics || true
+
+  # ────────────────────────────────────────────────────────────────
+  # JOB 2. build-test — Dockerfile 빌드 검증 (push 없음)
+  # lint 통과 후에만 실행 (needs: lint)
+  # 이미지가 정상 빌드되는지만 확인, Docker Hub 업로드 없음
+  # ────────────────────────────────────────────────────────────────
+  build-test:
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Docker 이미지 빌드 테스트
+        run: |
+          docker build -t aidas-web:test -f services/web/Dockerfile .
