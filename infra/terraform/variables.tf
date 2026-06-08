@@ -64,7 +64,7 @@ variable "github_token" {
 variable "github_owner" {
   description = "GitHub 팀명 또는 계정명"
   type        = string
-  default     = "KT-TECHUP-AIDAS"
+  default     = "AIDAS"
 }
 
 variable "aws_access_key" {
