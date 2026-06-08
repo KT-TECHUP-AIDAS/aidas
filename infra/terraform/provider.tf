@@ -43,10 +43,7 @@ provider "aws" {
   alias  = "us_east_1"
   region = "us-east-1"
   profile = "aidasProject2" # AWS userID
-<<<<<<< HEAD
->>>>>>> feat/terra
-=======
->>>>>>> 1454348c49cb58f8fc8915ef5e13bc0f2c43141d
+
 }
 
 provider "tailscale" {
