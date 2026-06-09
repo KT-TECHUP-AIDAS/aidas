@@ -1,0 +1,74 @@
+---
+# tasks/main.yml
+
+# ================================================================
+# 🏢 [1부] 메인 본진 서버 (rocky02) 전용 배포 로직
+# ================================================================
+- name: "[Rocky02] 기존 구형 웹 컨테이너 정리"
+  ansible.builtin.shell: "docker rm -f aidas-web-service ccmall-web-service"
+  failed_when: false
+  when: inventory_hostname == 'rocky02'
+
+- name: "[Rocky02] 최신 도커 이미지 빌드"
+  ansible.builtin.shell: "docker build -t aidas-web:v1.0 -f services/web/Dockerfile ."
+  args:
+    chdir: "{{ project_root }}"   # 🌟 /root/aidas 대신 /home/user1/aidas로 정확히 찾아가게 만듭니다!
+  when: inventory_hostname == 'rocky02'
+
+- name: "[Rocky02] 💡 루트에 있는 환경변수 파일(.env.rocky02)을 컨테이너용 .env로 안전 배달"
+  ansible.builtin.copy:
+    src: "{{ project_root }}/.env.rocky02"  # 🌟 /root/ 대신 /home/user1/aidas 경로를 강제 고정!
+    dest: "{{ project_root }}/services/web/.env" # (민규 님이 타깃으로 잡은 복사 경로)
+  when: inventory_hostname == 'rocky02'
+
+- name: "[Rocky02] AIDAS 웹 서버 1번 복사본 가동 (배달된 .env 파일 참조)"
+  ansible.builtin.shell: "docker run -d --name aidas-web-service -p 8000:8000 --env-file {{ project_root }}/services/web/.env --restart always aidas-web:v1.0"
+  when: inventory_hostname == 'rocky02'
+
+- name: "[Rocky02] ➔ 우분투 전송용 이미지 아카이브 추출"
+  ansible.builtin.shell: "docker save -o /tmp/aidas-web.tar aidas-web:v1.0 && chmod 644 /tmp/aidas-web.tar" # 🌟 && chmod 644 추가!
+  when: inventory_hostname == 'rocky02'
+
+# ================================================================
+# 🏗️ [2부] 원격 서브 복제본 서버 (ubuntu) 전용 배포 로직 (순정 SSH 활용)
+# ================================================================
+- name: "[Ubuntu] 원격 우분투 구형 컨테이너 싹 청소"
+  ansible.builtin.shell: "sudo docker rm -f aidas-web-service ccmall-web-service aidas-db-replica"
+  failed_when: false
+  when: inventory_hostname == 'ubuntu'
+
+- name: "[Ubuntu] Rocky02의 최신 웹 이미지 아카이브를 우분투로 원격 이송"
+  ansible.builtin.copy:
+    src: "/tmp/aidas-web.tar"  # 🌟 /tmp/ 경로에서 읽어오도록 변경!
+    dest: "/tmp/aidas-web.tar"
+  when: inventory_hostname == 'ubuntu'
+
+- name: "[Ubuntu] 최신 웹 이미지 도커에 로드"
+  ansible.builtin.shell: "sudo docker load -i /home/user1/aidas-web.tar"
+  when: inventory_hostname == 'ubuntu'
+
+# 수정 전: src: .env.rocky02 또는 /root/... ➔ 수정 후: project_root 변수 적용!
+- name: "[Ubuntu] 💡 우분투 서버용 환경변수 파일 복사 배달 (.env.rocky02 기반)"
+  ansible.builtin.copy:
+    src: "{{ project_root }}/.env.rocky02"
+    dest: "/home/user1/.env"  # 🌟 목적지 주소를 도커 실행 경로와 똑같이 /home/user1/.env 로 맞춰줍니다!
+  when: inventory_hostname == 'ubuntu'
+  
+- name: "[Ubuntu] AIDAS 웹 서버 2번 복사본 가동 (env 파일 참조)"
+  ansible.builtin.shell: |
+    sudo docker run -d --name aidas-web-service \
+      -p 8000:8000 \
+      --env-file /home/user1/.env \
+      --restart always \
+      aidas-web:v1.0
+  when: inventory_hostname == 'ubuntu'
+
+- name: "[Ubuntu] ★ 원격 우분투 ReadOnly Replica DB 가동 및 SQL 자동 주입 데이터 시딩 ★"
+  ansible.builtin.shell: |
+    sudo docker run -d --name aidas-db-replica \
+      -p 5433:5432 \
+      --env-file /home/user1/.env \
+      -v {{ ansible_env.HOME }}/aidas/init.sql:/docker-entrypoint-initdb.d/init.sql \
+      --restart always \
+      postgres:15
+  when: inventory_hostname == 'ubuntu'
