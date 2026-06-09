@@ -13,7 +13,8 @@
   hosts: all
   become: true
   roles:
-    - docker
+    - role: docker            
+      tags: ["docker"]
 
 - name: Deploy PLG stack on rocky01
   hosts: rocky01
