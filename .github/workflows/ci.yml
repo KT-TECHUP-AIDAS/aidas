@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [] ## 실행시에 "**"넣어주시면됩니다.
   pull_request:
-    branches: [master]
+    branches: [] ##실행시에 master넣어주시면됩니다.
 
 jobs:
   # ────────────────────────────────────────────────────────────────
