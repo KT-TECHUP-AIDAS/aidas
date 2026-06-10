@@ -104,7 +104,8 @@ resource "aws_instance" "nat_ec2_c" {
     sysctl -p /etc/sysctl.d/99-nat.conf
 
     dnf install -y iptables-services
-    iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+    PRIMARY_IF=$(ip route show default | awk '/default/ {print $5}' | head -1)
+    iptables -t nat -A POSTROUTING -o $PRIMARY_IF -j MASQUERADE
     iptables-save > /etc/sysconfig/iptables
     systemctl enable --now iptables
   EOF
@@ -207,32 +208,31 @@ resource "tailscale_tailnet_key" "ec2_join_key" {
 
 # ENI를 EC2보다 먼저 독립적으로 생성
 # ─── 1. ENI 먼저 독립 생성 ───────────────────────────────────────
-resource "aws_network_interface" "tailscale_eni" {
-  subnet_id         = aws_subnet.private_subnet_1.id
-  source_dest_check = false  # 라우터 역할 필수!
-  security_groups = [
-    aws_security_group.ssh_sg.id,
-    aws_security_group.ec2_sg.id
-    ]
-  tags = {
-    Name = "${var.project_name}-tailscale-eni"
-  }
-}
+#resource "aws_network_interface" "tailscale_eni" {
+ # subnet_id         = aws_subnet.private_subnet_1.id
+  #source_dest_check = false  # 라우터 역할 필수!
+  #security_groups = [
+  #  aws_security_group.ssh_sg.id,
+  #  aws_security_group.ec2_sg.id
+  # ]
+  #tags = {
+  #  Name = "${var.project_name}-tailscale-eni"
+  #}
+#}
 # 수정 코드 (ENI 직접 참조 - 순환 없음)
 resource "aws_route" "to_onpremise_public" {
   route_table_id         = aws_route_table.public_rt.id
   destination_cidr_block = var.onpremise_cidr   # 변수로도 분리
-  network_interface_id   = aws_network_interface.tailscale_eni.id
+  network_interface_id = aws_instance.my_ec2.primary_network_interface_id
 }
-
 resource "aws_route" "to_onpremise_private_a" {
   route_table_id         = aws_route_table.private_rt_a.id
   destination_cidr_block = var.onpremise_cidr
-  network_interface_id   = aws_network_interface.tailscale_eni.id  # ✅
+  network_interface_id = aws_instance.my_ec2.primary_network_interface_id
 }
 
 resource "aws_route" "to_onpremise_private_c" {
   route_table_id         = aws_route_table.private_rt_c.id
   destination_cidr_block = var.onpremise_cidr
-  network_interface_id   = aws_network_interface.tailscale_eni.id  # ✅
+  network_interface_id = aws_instance.my_ec2.primary_network_interface_id
 }

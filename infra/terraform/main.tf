@@ -16,7 +16,7 @@ resource "aws_instance" "my_ec2" {
     subnet_id              = aws_subnet.private_subnet_1.id
     vpc_security_group_ids = [aws_security_group.ssh_sg.id, aws_security_group.ec2_sg.id]
         
-    user_data = <<-EOF
+    user_data = base64encode(<<-EOF
         #!/bin/bash
         # 로그 파일 생성 및 모든 출력 기록
         exec > >(tee -a /var/log/user_data_final.log) 2>&1
@@ -52,22 +52,22 @@ resource "aws_instance" "my_ec2" {
 
         # 5. Tailscale 가입 (생성된 Auth Key 사용)
         # --advertise-routes만 던져두면, 승인은 테라폼이 밖에서 해줍니다.
-        tailscale up --authkey=${resource.tailscale_tailnet_key.ec2_join_key.key} \
+        tailscale up --authkey=${tailscale_tailnet_key.ec2_join_key.key} \
                      --advertise-routes=${aws_vpc.main.cidr_block} \
                      --accept-routes
     EOF
-    
+    )   
     tags = {
         Name = "aidas-ec2"
     }
 }
 
 # ENI 연결을 별도 리소스로 분리
-resource "aws_network_interface_attachment" "tailscale_attach" {
-  instance_id          = aws_instance.my_ec2.id
-  network_interface_id = aws_network_interface.tailscale_eni.id
-  device_index         = 1  # 0은 위의 기본 NIC, 1부터 추가 ENI
-}
+#resource "aws_network_interface_attachment" "tailscale_attach" {
+#  instance_id          = aws_instance.my_ec2.id
+#  network_interface_id = aws_network_interface.tailscale_eni.id
+#  device_index         = 1  # 0은 위의 기본 NIC, 1부터 추가 ENI
+#}
 
 # 테라폼이 기기를 찾고 라우팅을 승인하는 부분
 data "tailscale_device" "my_ec2_device" {
