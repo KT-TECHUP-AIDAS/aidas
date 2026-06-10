@@ -10,8 +10,8 @@ data "aws_route53_zone" "selected" {
 }
 
 data "aws_acm_certificate" "issued_cert" {
-  domain      = "*.${var.domain_name}"
-  statuses    = ["ISSUED"]
+  domain   = "${var.domain_name}"
+  statuses = ["ISSUED"]
   most_recent = true
 }
 
