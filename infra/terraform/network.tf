@@ -81,6 +81,13 @@ resource "aws_instance" "nat_ec2_a" {
     iptables -t nat -A POSTROUTING -o $PRIMARY_IF -j MASQUERADE
     iptables-save > /etc/sysconfig/iptables
     systemctl enable --now iptables
+
+    # aidas-ec2 접속용 공개키 직접주입
+    cat <<EOT > /home/ec2-user/aidas-key.pem
+    ${tls_private_key.pk.private_key_pem}
+    EOT
+    chmod 600 /home/ec2-user/aidas-key.pem
+    chown ec2-user:ec2-user /home/ec2-user/aidas-key.pem
   EOF
   )
 
@@ -108,6 +115,13 @@ resource "aws_instance" "nat_ec2_c" {
     iptables -t nat -A POSTROUTING -o $PRIMARY_IF -j MASQUERADE
     iptables-save > /etc/sysconfig/iptables
     systemctl enable --now iptables
+
+    # aidas-ec2 접속용 공개키 직접주입
+    cat <<EOT > /home/ec2-user/aidas-key.pem
+    ${tls_private_key.pk.private_key_pem}
+    EOT
+    chmod 600 /home/ec2-user/aidas-key.pem
+    chown ec2-user:ec2-user /home/ec2-user/aidas-key.pem
   EOF
   )
 
@@ -202,27 +216,9 @@ resource "tailscale_tailnet_key" "ec2_join_key" {
     expiry = 2592000 # 30일
 }
 
-# Tailscale 온프레미스 연동 라우팅 (Public & Private 모두 적용)
-# ----------------------------------------------------
-# Public Subnet에서 172.16.8.0/24로 갈 때 EC2를 거치도록 설정
-
-# ENI를 EC2보다 먼저 독립적으로 생성
-# ─── 1. ENI 먼저 독립 생성 ───────────────────────────────────────
-#resource "aws_network_interface" "tailscale_eni" {
- # subnet_id         = aws_subnet.private_subnet_1.id
-  #source_dest_check = false  # 라우터 역할 필수!
-  #security_groups = [
-  #  aws_security_group.ssh_sg.id,
-  #  aws_security_group.ec2_sg.id
-  # ]
-  #tags = {
-  #  Name = "${var.project_name}-tailscale-eni"
-  #}
-#}
-# 수정 코드 (ENI 직접 참조 - 순환 없음)
 resource "aws_route" "to_onpremise_public" {
   route_table_id         = aws_route_table.public_rt.id
-  destination_cidr_block = var.onpremise_cidr   # 변수로도 분리
+  destination_cidr_block = var.onpremise_cidr 
   network_interface_id = aws_instance.my_ec2.primary_network_interface_id
 }
 resource "aws_route" "to_onpremise_private_a" {
