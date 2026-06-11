@@ -31,7 +31,7 @@ terraform {
      encrypt      = true
      profile      = "aidasProject2"
    }
- }
+  }
 
 # 기본 provider (서울)
 provider "aws" {
@@ -52,10 +52,9 @@ provider "tailscale" {
   tailnet = var.tailnet_name
 }
 
- # GitHub provider 설정
- provider "github" {
-   token = var.github_token
-   owner = var.github_owner
-
- }
+# GitHub provider 설정
+provider "github" {
+  token = var.github_token
+  owner = var.github_owner
+}
 
