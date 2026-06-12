@@ -36,11 +36,11 @@ resource "github_actions_secret" "dockerhub_token" {
 }
 
 # ─── 애플리케이션 설정 ────────────────────────────────────────────
-resource "github_actions_secret" "db_url" {
-  repository      = "aidas"
-  secret_name     = "DB_URL"
-  plaintext_value = var.db_url
-}
+# resource "github_actions_secret" "db_url" {
+#   repository      = "aidas"
+#   secret_name     = "DB_URL"
+#   plaintext_value = var.db_url
+# }
 
 # ─── AWS 자격증명 ─────────────────────────────────────────────────
 resource "github_actions_secret" "aws_access_key" {

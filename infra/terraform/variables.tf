@@ -49,7 +49,7 @@ variable "tailscale_api_key" {
 }
 
 variable "domain_name" {
-  default = "everton.cloud"
+  default = "dafarm.shop"
 }
 
 variable "slack_webhook_url" {
@@ -93,8 +93,8 @@ variable "dockerhub_token" {
   sensitive   = true
 }
 
-variable "db_url" {
-  description = "FastAPI DB 연결 URL"
-  type        = string
-  sensitive   = true
-}
+# variable "db_url" {
+#   description = "FastAPI DB 연결 URL"
+#   type        = string
+#   sensitive   = true
+# }

@@ -105,6 +105,35 @@ resource "local_file" "ansible_config"{
     EOF
 }
 
+# #  Docker 이미지 빌드 + 푸시 (Ansible 실행 전에)
+# resource "terraform_data" "docker_build_push" {
+
+#   triggers_replace = {
+#     dockerfile = filemd5("${path.module}/../../services/web/Dockerfile")  # Dockerfile 변경 시 재빌드
+#     requirements = filemd5("${path.module}/../../services/web/requirements.txt")
+#   }
+
+#   provisioner "local-exec" {
+#     command = <<-EOT
+#       echo "Docker 이미지 빌드 시작..."
+#       docker build \
+#         -t ${var.dockerhub_username}/aidas-web:latest \
+#         -f ${path.module}/../../services/web/Dockerfile \
+#         ${path.module}/../../
+
+#       echo "DockerHub 로그인..."
+#       echo ${var.dockerhub_token} | docker login \
+#         -u ${var.dockerhub_username} \
+#         --password-stdin
+
+#       echo "DockerHub 푸시..."
+#       docker push ${var.dockerhub_username}/aidas-web:latest
+
+#       echo "Docker 이미지 빌드 및 푸시 완료!"
+#     EOT
+#   }
+# }
+# Tailscale 세팅 대기 
 resource "terraform_data" "wait_for_instance"{
     depends_on = [aws_instance.my_ec2, local_file.ansible_inventory, local_file.ansible_config]
     triggers_replace = aws_instance.my_ec2.id
@@ -123,6 +152,7 @@ resource "terraform_data" "wait_for_instance"{
     }
 }
 
+
 #resource "terraform_data" "ansible_run"{
     #depends_on = [ terraform_data.wait_for_instance ]
     #triggers_replace = {
@@ -137,3 +167,4 @@ resource "terraform_data" "wait_for_instance"{
   #       DB_URL             = var.db_url
  #      }
 #    }
+
