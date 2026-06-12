@@ -143,6 +143,7 @@ jobs:
             done
         env:
           DB_URL: ${{ secrets.DB_URL }}
+          
 
       - name: 헬스체크 대기
         run: |
