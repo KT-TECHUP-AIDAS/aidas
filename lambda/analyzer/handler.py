@@ -113,11 +113,6 @@ def trigger_lambda_sync(log_data: dict, clean_ai_analysis: str, elapsed: float):
         logger.error(f"❌ AWS Lambda 호출 실패: {e}")
 
 
-
-
-
-# ── 1차 알림: 원본 로그 즉시 발송 ─────────────────────────────────
-
 async def send_slack_immediate_alert(log_data: dict):
 
     payload = {
@@ -142,11 +137,6 @@ async def send_slack_immediate_alert(log_data: dict):
 
     logger.info("✅ 1차 Slack 알림 발송 완료 (원본 로그)")
 
-
-
-
-
-# ── 2차 알림 fallback: AI 분석 실패 시 ────────────────────────────
 
 async def send_slack_fallback_alert(log_data: dict, error_reason: str):
 
