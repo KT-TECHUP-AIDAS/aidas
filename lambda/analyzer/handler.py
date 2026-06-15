@@ -414,7 +414,7 @@ async def poll_loki_and_analyze():
 
 
 
-                logger.info(f"🚨 신규 에러 {len(data['messages'])}건 묶음 감지! ([{service_name}]) 1차 알림 발송...")
+                logger.info(f"🚨 신규 에러 {len(data['messages'])}건 묶음 감지! ([{service_name}]) 1차 알림 발송... ")
 
 
 
