@@ -26,7 +26,7 @@ lambda_client = boto3.client('lambda', region_name=AWS_REGION)
 PROMPT_PATH = os.getenv("PROMPT_PATH", "/home/user1/aidas/prompts/system_prompt.md")
 SCENARIO_PATH = "/home/user1/aidas/prompts/scenarios"
 
-last_processed_ts = 0
+last_processed_ts = {}
 
 
 def get_system_prompt():
@@ -145,15 +145,15 @@ async def analyze_with_ai(log_message: str):
 async def poll_loki_and_analyze():
     global last_processed_ts
 
-    end_time = datetime.utcnow()
-    start_time = end_time - timedelta(seconds=15)
+    end_ns = time.time_ns()
+    start_ns = end_ns - (15 * 1_000_000_000)
 
     query = '{job=~".+"} |~ "ERROR|FATAL|WARN"'
 
     params = {
         'query': query,
-        'start': str(int(start_time.timestamp() * 1e9)),
-        'end': str(int(end_time.timestamp() * 1e9)),
+        'start': str(start_ns),
+        'end': str(end_ns),
         'limit': 100
     }
 
@@ -165,34 +165,51 @@ async def poll_loki_and_analyze():
 
         results = data.get('data', {}).get('result', [])
 
+        # 🌟 [핵심 변경 1] 이번 5초 동안 수집된 모든 로그를 서비스별로 모을 '바구니' 준비
+        logs_by_service = {}
+
         for res in results:
             service_name = res.get('stream', {}).get('job', 'unknown')
+            
+            # Loki의 고유 스트림(라벨 조합 전체)별로 타임스탬프를 관리해야 누락이 없음
+            stream_labels = str(res.get('stream', {}))
+            stream_last_ts = last_processed_ts.get(stream_labels, 0)
+            
             values = sorted(res.get('values', []), key=lambda x: int(x[0]))
-
-            new_logs = []
-            max_ts_in_batch = last_processed_ts
+            max_ts_in_stream = stream_last_ts
 
             for timestamp_str, message in values:
                 ts_int = int(timestamp_str)
-                if ts_int <= last_processed_ts:
+                if ts_int <= stream_last_ts:
                     continue
-                new_logs.append(message)
-                max_ts_in_batch = max(max_ts_in_batch, ts_int)
+                
+                # 🌟 [핵심 변경 2] 바로 보내지 않고 일단 바구니에 담기!
+                if service_name not in logs_by_service:
+                    logs_by_service[service_name] = {"messages": [], "max_ts": 0}
+                    
+                logs_by_service[service_name]["messages"].append(message)
+                logs_by_service[service_name]["max_ts"] = max(logs_by_service[service_name]["max_ts"], ts_int)
+                max_ts_in_stream = max(max_ts_in_stream, ts_int)
 
-            if new_logs:
-                combined_message = "\n".join(new_logs)
+            # 스트림별로 처리 완료된 시간 기록
+            last_processed_ts[stream_labels] = max_ts_in_stream
+
+        # 🌟 [핵심 변경 3] 바구니에 다 모였으면, 묶어서 서비스별로 딱 한 번만 슬랙/AI 전송!
+        for service_name, data in logs_by_service.items():
+            if data["messages"]:
+                combined_message = "\n".join(data["messages"])
+                max_ts_in_batch = data["max_ts"]
+                
                 log_data = {
                     "service_name": service_name,
                     "timestamp": str(max_ts_in_batch),
                     "message": combined_message
                 }
 
-                logger.info(f"신규 에러 {len(new_logs)}건 묶음 감지! 1차 알림 발송 후 AI 분석 시작...")
+                logger.info(f"🚨 신규 에러 {len(data['messages'])}건 묶음 감지! ([{service_name}]) 1차 알림 발송...")
 
-                # 1차 알림: 원본 로그 즉시 Slack 발송
                 await send_slack_immediate_alert(log_data)
 
-                # 2차 알림: AI 분석 후 Lambda → Slack 발송
                 try:
                     start = time.time()
                     clean_analysis = await analyze_with_ai(combined_message)
@@ -200,8 +217,6 @@ async def poll_loki_and_analyze():
                     trigger_lambda_sync(log_data, clean_analysis, elapsed)
                 except Exception as ai_e:
                     await send_slack_fallback_alert(log_data, str(ai_e))
-
-                last_processed_ts = max_ts_in_batch
 
     except Exception as e:
         logger.error(f"Loki 폴링 실패: {e}")
