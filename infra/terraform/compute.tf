@@ -72,7 +72,7 @@ chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 rm -f /etc/nginx/conf.d/default.conf
 curl -o /etc/nginx/conf.d/nginx.conf \
-  https://raw.githubusercontent.com/KT-TECHUP-AIDAS/aidas/master/infra/ansible/nginx/nginx.conf
+  https://raw.githubusercontent.com/${var.github_owner}/${var.github_repo}/master/infra/ansible/nginx/nginx.conf
 
 systemctl enable --now nginx
 systemctl enable --now docker
@@ -150,6 +150,20 @@ COMPOSE_CONF
 echo "=== [5/5] Promtail Agent 컨테이너 기동 ==="
 cd /opt/promtail
 docker compose -f docker-compose-promtail.yml up -d
+
+echo "=== [6/5] FastAPI 컨테이너 실행 ==="
+# nginx가 80 점유 중이므로 비활성화
+systemctl disable --now nginx
+
+# Docker Hub 로그인
+echo "${var.dockerhub_token}" | docker login -u "${var.dockerhub_username}" --password-stdin
+
+# FastAPI 이미지 풀 및 컨테이너 실행
+docker pull ${var.dockerhub_username}/aidas-web:latest
+docker run -d --name aidas-web --restart always \
+  -p 80:8000 \
+  -e DATABASE_URL="${var.db_url}" \
+  ${var.dockerhub_username}/aidas-web:latest
 
 echo "=== AWS 온디맨드 에이전트 파이프라인 아키텍처 동기화 완료 ==="
 EOF
