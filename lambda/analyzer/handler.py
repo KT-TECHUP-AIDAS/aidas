@@ -26,6 +26,7 @@ lambda_client = boto3.client('lambda', region_name=AWS_REGION)
 PROMPT_PATH = os.getenv("PROMPT_PATH", "/home/user1/aidas/prompts/system_prompt.md")
 SCENARIO_PATH = "/home/user1/aidas/prompts/scenarios"
 
+# 전역 변수를 서비스별 격리가 가능한 딕셔너리 구조로 변경
 last_processed_ts = {}
 
 
@@ -145,15 +146,17 @@ async def analyze_with_ai(log_message: str):
 async def poll_loki_and_analyze():
     global last_processed_ts
 
-    end_ns = time.time_ns()
-    start_ns = end_ns - (15 * 1_000_000_000)
+    # 서버 간 미세한 시간 차이를 방어하기 위해 검색 윈도우를 넉넉하게 10분으로 확장
+    end_time = datetime.utcnow()
+    start_time = end_time - timedelta(seconds=600)
 
-    query = '{job=~".+"} |~ "ERROR|FATAL|WARN"'
+    # 대소문자 구분 없이 Nginx와 백엔드 오류를 통합 탐색하기 위해 (?i) 정규식 플래그 주입
+    query = '{job=~".+"} |~ "(?i)error|fatal|warn"'
 
     params = {
         'query': query,
-        'start': str(start_ns),
-        'end': str(end_ns),
+        'start': str(int(start_time.timestamp() * 1e9)),
+        'end': str(int(end_time.timestamp() * 1e9)),
         'limit': 100
     }
 
@@ -165,44 +168,43 @@ async def poll_loki_and_analyze():
 
         results = data.get('data', {}).get('result', [])
 
-        # 🌟 [핵심 변경 1] 이번 5초 동안 수집된 모든 로그를 서비스별로 모을 '바구니' 준비
+        # 수집 주기에 걸린 로그들을 서비스명 단위로 집적할 임시 바구니
         logs_by_service = {}
 
         for res in results:
             service_name = res.get('stream', {}).get('job', 'unknown')
-            
-            # Loki의 고유 스트림(라벨 조합 전체)별로 타임스탬프를 관리해야 누락이 없음
-            stream_labels = str(res.get('stream', {}))
-            stream_last_ts = last_processed_ts.get(stream_labels, 0)
-            
             values = sorted(res.get('values', []), key=lambda x: int(x[0]))
-            max_ts_in_stream = stream_last_ts
+
+            # 각 서비스 ID에 독립적으로 매핑된 직전 처리 타임스탬프 로드
+            service_last_ts = last_processed_ts.get(service_name, 0)
+            max_ts_in_batch = service_last_ts
 
             for timestamp_str, message in values:
                 ts_int = int(timestamp_str)
-                if ts_int <= stream_last_ts:
+                if ts_int <= service_last_ts:
                     continue
                 
-                # 🌟 [핵심 변경 2] 바로 보내지 않고 일단 바구니에 담기!
+                # 중복되지 않은 신규 로그들을 서비스 바구니에 담기
                 if service_name not in logs_by_service:
                     logs_by_service[service_name] = {"messages": [], "max_ts": 0}
                     
                 logs_by_service[service_name]["messages"].append(message)
                 logs_by_service[service_name]["max_ts"] = max(logs_by_service[service_name]["max_ts"], ts_int)
-                max_ts_in_stream = max(max_ts_in_stream, ts_int)
+                max_ts_in_batch = max(max_ts_in_batch, ts_int)
 
-            # 스트림별로 처리 완료된 시간 기록
-            last_processed_ts[stream_labels] = max_ts_in_stream
+            # 스트림 데이터 분류 완료 후 전역 변수 업데이트 준비
+            if service_name in logs_by_service:
+                last_processed_ts[service_name] = max(last_processed_ts.get(service_name, 0), max_ts_in_batch)
 
-        # 🌟 [핵심 변경 3] 바구니에 다 모였으면, 묶어서 서비스별로 딱 한 번만 슬랙/AI 전송!
+        # 수집이 끝난 바구니의 묶음 데이터들을 순차적으로 슬랙 및 람다 인터페이스로 전송
         for service_name, data in logs_by_service.items():
             if data["messages"]:
                 combined_message = "\n".join(data["messages"])
-                max_ts_in_batch = data["max_ts"]
+                max_ts = data["max_ts"]
                 
                 log_data = {
                     "service_name": service_name,
-                    "timestamp": str(max_ts_in_batch),
+                    "timestamp": str(max_ts),
                     "message": combined_message
                 }
 
@@ -234,4 +236,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logger.info("핸들러 안전하게 종료됨")   
+        logger.info("핸들러 안전하게 종료됨")
