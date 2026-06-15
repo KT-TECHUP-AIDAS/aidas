@@ -65,6 +65,12 @@ dnf remove -y podman buildah cgroupby
 dnf update -y
 dnf install -y docker jq nginx stress
 
+
+echo "Nginx 기본 서버 블록의 포트를 8080으로 변경합니다."
+sed -i 's/listen\s*80;/listen 8080;/g' /etc/nginx/nginx.conf
+sed -i 's/listen\s*\[::\]:80;/listen [::]:8080;/g' /etc/nginx/nginx.conf
+
+
 # Docker Compose V2 코어 플러그인 설치
 mkdir -p /usr/local/lib/docker/cli-plugins
 curl -SL https://github.com/docker/compose/releases/download/v2.26.0/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
@@ -182,8 +188,8 @@ resource "aws_autoscaling_group" "asg_blue" {
   name                = "${var.project_name}-asg-blue"
   vpc_zone_identifier = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
   max_size            = var.max_size
-  min_size            = var.min_size
-  desired_capacity    = var.desired_capacity
+  min_size            = 0
+  desired_capacity    = 2
   depends_on = [
   aws_instance.nat_ec2_a,
   aws_instance.nat_ec2_c
@@ -209,7 +215,7 @@ resource "aws_autoscaling_group" "asg_blue" {
 resource "aws_autoscaling_group" "asg_green" {
   name                = "${var.project_name}-asg-green"
   vpc_zone_identifier = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
-  max_size            = var.max_size
+  max_size            = 4
   min_size            = 0             # 평소엔 0 (비용 절감)
   desired_capacity    = 0             # 배포 시에만 올림
 
