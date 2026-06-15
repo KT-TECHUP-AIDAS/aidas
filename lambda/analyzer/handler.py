@@ -26,7 +26,8 @@ lambda_client = boto3.client('lambda', region_name=AWS_REGION)
 PROMPT_PATH = os.getenv("PROMPT_PATH", "/home/user1/aidas/prompts/system_prompt.md")
 SCENARIO_PATH = "/home/user1/aidas/prompts/scenarios"
 
-last_processed_ts = 0
+# 전역 변수를 서비스별 격리가 가능한 딕셔너리 구조로 변경
+last_processed_ts = {}
 
 
 def get_system_prompt():
@@ -145,10 +146,12 @@ async def analyze_with_ai(log_message: str):
 async def poll_loki_and_analyze():
     global last_processed_ts
 
+    # 서버 간 미세한 시간 차이를 방어하기 위해 검색 윈도우를 넉넉하게 10분으로 확장
     end_time = datetime.utcnow()
-    start_time = end_time - timedelta(seconds=15)
+    start_time = end_time - timedelta(seconds=600)
 
-    query = '{job=~".+"} |~ "ERROR|FATAL|WARN"'
+    # 대소문자 구분 없이 Nginx와 백엔드 오류를 통합 탐색하기 위해 (?i) 정규식 플래그 주입
+    query = '{job=~".+"} |~ "(?i)error|fatal|warn"'
 
     params = {
         'query': query,
@@ -165,34 +168,50 @@ async def poll_loki_and_analyze():
 
         results = data.get('data', {}).get('result', [])
 
+        # 수집 주기에 걸린 로그들을 서비스명 단위로 집적할 임시 바구니
+        logs_by_service = {}
+
         for res in results:
             service_name = res.get('stream', {}).get('job', 'unknown')
             values = sorted(res.get('values', []), key=lambda x: int(x[0]))
 
-            new_logs = []
-            max_ts_in_batch = last_processed_ts
+            # 각 서비스 ID에 독립적으로 매핑된 직전 처리 타임스탬프 로드
+            service_last_ts = last_processed_ts.get(service_name, 0)
+            max_ts_in_batch = service_last_ts
 
             for timestamp_str, message in values:
                 ts_int = int(timestamp_str)
-                if ts_int <= last_processed_ts:
+                if ts_int <= service_last_ts:
                     continue
-                new_logs.append(message)
+                
+                # 중복되지 않은 신규 로그들을 서비스 바구니에 담기
+                if service_name not in logs_by_service:
+                    logs_by_service[service_name] = {"messages": [], "max_ts": 0}
+                    
+                logs_by_service[service_name]["messages"].append(message)
+                logs_by_service[service_name]["max_ts"] = max(logs_by_service[service_name]["max_ts"], ts_int)
                 max_ts_in_batch = max(max_ts_in_batch, ts_int)
 
-            if new_logs:
-                combined_message = "\n".join(new_logs)
+            # 스트림 데이터 분류 완료 후 전역 변수 업데이트 준비
+            if service_name in logs_by_service:
+                last_processed_ts[service_name] = max(last_processed_ts.get(service_name, 0), max_ts_in_batch)
+
+        # 수집이 끝난 바구니의 묶음 데이터들을 순차적으로 슬랙 및 람다 인터페이스로 전송
+        for service_name, data in logs_by_service.items():
+            if data["messages"]:
+                combined_message = "\n".join(data["messages"])
+                max_ts = data["max_ts"]
+                
                 log_data = {
                     "service_name": service_name,
-                    "timestamp": str(max_ts_in_batch),
+                    "timestamp": str(max_ts),
                     "message": combined_message
                 }
 
-                logger.info(f"신규 에러 {len(new_logs)}건 묶음 감지! 1차 알림 발송 후 AI 분석 시작...")
+                logger.info(f"🚨 신규 에러 {len(data['messages'])}건 묶음 감지! ([{service_name}]) 1차 알림 발송...")
 
-                # 1차 알림: 원본 로그 즉시 Slack 발송
                 await send_slack_immediate_alert(log_data)
 
-                # 2차 알림: AI 분석 후 Lambda → Slack 발송
                 try:
                     start = time.time()
                     clean_analysis = await analyze_with_ai(combined_message)
@@ -200,8 +219,6 @@ async def poll_loki_and_analyze():
                     trigger_lambda_sync(log_data, clean_analysis, elapsed)
                 except Exception as ai_e:
                     await send_slack_fallback_alert(log_data, str(ai_e))
-
-                last_processed_ts = max_ts_in_batch
 
     except Exception as e:
         logger.error(f"Loki 폴링 실패: {e}")
@@ -219,4 +236,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logger.info("핸들러 안전하게 종료됨")   
+        logger.info("핸들러 안전하게 종료됨")
