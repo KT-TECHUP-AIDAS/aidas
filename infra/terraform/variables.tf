@@ -49,13 +49,13 @@ variable "tailscale_api_key" {
 }
 
 variable "domain_name" {
-  default = "dafarm.shop"
+  default = "" # 테스트 시 팀원 본인 도메인
 }
 
 variable "slack_webhook_url" {
   description = "Slack Incoming Webhook URL"
   type        = string
-  sensitive   = true  # 플랜 출력에서 숨김
+  sensitive   = true 
  
 }
 variable "github_token" {
@@ -67,7 +67,7 @@ variable "github_token" {
 variable "github_owner" {
   description = "GitHub 조직명"
   type        = string
-  default     = "KT-TECHUP-AIDAS"
+  default     = "rush7993" # 테스트 시 본인 깃헙 계정
 }
 
 variable "aws_access_key" {
@@ -93,7 +93,6 @@ variable "dockerhub_token" {
   sensitive   = true
 }
 
-
 variable "db_url" {
   description = "FastAPI DB 연결 URL"
   type        = string
@@ -106,3 +105,8 @@ variable "loki_url" {
   sensitive   = true
 }
 
+variable "s3_image_bucket" {
+  description = "이미지 저장용 S3 버킷 이름"
+  type        = string
+  default     = "aidas-images"
+}

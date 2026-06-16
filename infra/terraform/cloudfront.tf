@@ -1,7 +1,20 @@
 # cloudfront.tf
-# ├── CloudFront Distribution
+# ├── S3 버킷 (정적 자산 + 장애 대응 자산화)
+# ├── S3 퍼블릭 접근 차단 (OAC 전용)
+# ├── S3 버전 관리
+# ├── S3 암호화
 # ├── Origin Access Control (S3 직접 접근 차단)
-# └── S3 버킷 (장애 대응 프로세스 자산화)
+# ├── S3 버킷 정책 (CloudFront OAC만 허용)
+# ├── CloudFront Distribution
+# │     ├── Origin 1: ALB (동적 요청)
+# │     ├── Origin 2: S3 assets (정적 자산)
+# │     ├── Origin 3: S3 images (이미지 버킷) ← 신규
+# │     ├── Cache Behavior 1: /static/* → S3 assets (7일 캐싱)
+# │     ├── Cache Behavior 2: /images/* → S3 images (30일 캐싱) ← 신규
+# │     ├── Cache Behavior 3: /api/*    → ALB (캐싱 없음)
+# │     └── Default:          그 외      → ALB (1분 캐싱)
+# ├── ACM 인증서 (us-east-1)
+# └── Route53 레코드 (www + root → CloudFront)
 
 # ─── 1. S3 버킷 (정적 자산 + 장애 대응 자산화) ───────────────────
 resource "aws_s3_bucket" "assets" {
@@ -89,11 +102,17 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # ── Origin 2: S3 (정적 자산) ───────────────────────────────────
+  # ── Origin 2: S3 (정적 자산) 
   origin {
     domain_name              = aws_s3_bucket.assets.bucket_regional_domain_name
     origin_id                = "s3-origin"
     origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
+  }
+
+  # ── Origin 3: S3 이미지 버킷 (신규 추가) ─────────────────────
+  origin {
+    domain_name = aws_s3_bucket.images.bucket_regional_domain_name
+    origin_id   = "s3-images-origin"
   }
 
   # ── Cache Behavior 1: 정적 자산 (S3) ──────────────────────────
@@ -115,7 +134,27 @@ resource "aws_cloudfront_distribution" "main" {
     max_ttl     = 31536000
   }
 
-  # ── Cache Behavior 2: API 요청 (캐싱 비활성화) ────────────────
+  # ── Cache Behavior 2: (S3 이미지 버킷) 신규 추가 ────순서중요,API 요청보다 위에
+  ordered_cache_behavior {
+    path_pattern           = "/images/*"
+    target_origin_id       = "s3-images-origin"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+
+    forwarded_values {
+      query_string = false
+      cookies { forward = "none" }
+    }
+
+    # 이미지 30일 캐싱
+    min_ttl     = 0
+    default_ttl = 2592000   # 30일
+    max_ttl     = 31536000  # 1년
+  }
+
+  # ── Cache Behavior 3: API 요청 (캐싱 비활성화) ────────────────
   ordered_cache_behavior {
     path_pattern           = "/api/*"
     target_origin_id       = "alb-origin"

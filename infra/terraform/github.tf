@@ -4,7 +4,7 @@
 # ─── EC2 접속 정보 ────────────────────────────────────────────────
 # → IP가 바뀌어도 이름이 고정되므로 재프로비저닝 시에도 자동 반영
 resource "github_actions_secret" "ec2_host" {
-  repository      = "aidas"
+  repository      = "aidas" # 테스트 시 본인 깃헙 레포지토리(아래도 동일)
   secret_name     = "EC2_HOST"
   plaintext_value = "${var.host_name}.${var.tailnet_name}"
 }
@@ -35,12 +35,12 @@ resource "github_actions_secret" "dockerhub_token" {
   plaintext_value = var.dockerhub_token
 }
 
-# ─── 애플리케이션 설정 ────────────────────────────────────────────
-# resource "github_actions_secret" "db_url" {
-#   repository      = "aidas"
-#   secret_name     = "DB_URL"
-#   plaintext_value = var.db_url
-# }
+#─── 애플리케이션 설정 ────────────────────────────────────────────
+resource "github_actions_secret" "db_url" {
+  repository      = "aidas"
+  secret_name     = "DB_URL"
+  plaintext_value = var.db_url
+}
 
 # ─── AWS 자격증명 ─────────────────────────────────────────────────
 resource "github_actions_secret" "aws_access_key" {
