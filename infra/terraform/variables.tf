@@ -70,6 +70,12 @@ variable "github_owner" {
   default     = "rush7993" # 테스트 시 본인 깃헙 계정
 }
 
+variable "github_repo" {
+  description = "GitHub 레포지토리 이름"
+  type        = string
+  default     = "aidas"
+}
+
 variable "aws_access_key" {
   description = "GitHub Actions용 AWS Access Key"
   type        = string
@@ -95,6 +101,12 @@ variable "dockerhub_token" {
 
 variable "db_url" {
   description = "FastAPI DB 연결 URL"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_password" {
+  description = "FastAPI DB 비밀번호"
   type        = string
   sensitive   = true
 }
