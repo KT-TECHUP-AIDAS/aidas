@@ -105,6 +105,12 @@ variable "db_url" {
   sensitive   = true
 }
 
+variable "db_password" {
+  description = "FastAPI DB 비밀번호"
+  type        = string
+  sensitive   = true
+}
+
 variable "loki_url" {
   description = "Promtail이 로그를 푸시할 Loki endpoint URL"
   type        = string

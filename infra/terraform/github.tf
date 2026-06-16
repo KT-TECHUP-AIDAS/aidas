@@ -109,3 +109,9 @@ resource "github_actions_secret" "tailscale_api_key" {
   secret_name     = "TAILSCALE_API_KEY"
   plaintext_value = var.tailscale_api_key
 }
+
+resource "github_actions_secret" "loki_url" {
+  repository      = var.github_repo
+  secret_name     = "LOKI_URL"
+  plaintext_value = var.loki_url
+}
