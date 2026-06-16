@@ -93,8 +93,16 @@ variable "dockerhub_token" {
   sensitive   = true
 }
 
-# variable "db_url" {
-#   description = "FastAPI DB 연결 URL"
-#   type        = string
-#   sensitive   = true
-# }
+
+variable "db_url" {
+  description = "FastAPI DB 연결 URL"
+  type        = string
+  sensitive   = true
+}
+
+variable "loki_url" {
+  description = "Promtail이 로그를 푸시할 Loki endpoint URL"
+  type        = string
+  sensitive   = true
+}
+
