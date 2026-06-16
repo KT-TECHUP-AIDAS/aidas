@@ -1,0 +1,40 @@
+#/home/user1/aidas/docker-compose-ubuntu.yml
+services:
+  postgres-readonly:
+    image: postgres:15
+    container_name: postgres-readonly
+    environment:
+      POSTGRES_DB: aidas_db
+      POSTGRES_USER: aidas_user
+      POSTGRES_PASSWORD: aidas_password
+    ports:
+      # 외부 포트는 충돌나지 않게 5433으로 깔끔하게 정렬!
+      - "5433:5432"
+    volumes:
+      # ⭐️ 메인 DB 저장소와 쫑나지 않도록 부대장 전용 독립 볼륨을 줍니다. (NFS 허브 기지 내부 보존)
+      - /home/user1/aidas/nfs_db_readonly_data:/var/lib/postgresql/data
+    # 🛠️ [무한루프 완파 치트키] DB가 정상 부팅되게 가두되, 트랜잭션 자체를 강제로 '읽기 전용'으로 완전히 잠가버립니다.
+    command: ["postgres", "-c", "default_transaction_read_only=on"]
+    restart: always
+
+  aidas-web:
+    image: postgres:15
+    ports:
+      - "8001:8000"
+    environment:
+      # 내 본체에 뜬 5433 포트(강제 읽기전용 잠금 DB)를 바라보게 완벽 링크!
+      DB_URL: postgresql://aidas_user:aidas_password@localhost:5433/aidas_db
+    volumes:
+      - aidas_logs:/var/log/aidas
+    depends_on:
+      - postgres-readonly
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    volumes:
+      - aidas_logs:/var/log/aidas:ro
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+
+volumes:
+  aidas_logs:

@@ -1,0 +1,36 @@
+#/home/user1/aidas/docker-compose-rocky.yml
+services:
+  postgres-main:
+    image: postgres:15
+    container_name: postgres-main
+    environment:
+      POSTGRES_DB: aidas_db
+      POSTGRES_USER: aidas_user
+      POSTGRES_PASSWORD: aidas_password
+    ports:
+      - "5432:5432"
+    volumes:
+      # 아까 ubuntu01과 끈끈하게 마운트해둔 내 마당 폴더를 지정합니다! (쓰기/읽기 둘 다 가능)
+      - /home/user1/aidas/db_data:/var/lib/postgresql/data
+    restart: always
+
+  aidas-web:
+    image: postgres:15 # 👈 아까 이미지 pull 에러 났던 걸 우회하기 위해 우선 순정 이미지로 임시 세팅!
+    ports:
+      - "8000:8000"
+    environment:
+      DB_URL: postgresql://aidas_user:aidas_password@172.16.8.202:5432/aidas_db
+    volumes:
+      - aidas_logs:/var/log/aidas
+    depends_on:
+      - postgres-main
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    volumes:
+      - aidas_logs:/var/log/aidas:ro
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+
+volumes:
+  aidas_logs:
