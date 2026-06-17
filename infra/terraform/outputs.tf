@@ -4,7 +4,6 @@
 # ├── EC2 (Tailscale, nat_ec2_a, nat_ec2_c)
 # ├── ALB
 # ├── CloudFront
-# ├── storage
 # ├── DynamoDB
 # ├── Lambda
 # └── Monitoring
@@ -85,15 +84,9 @@ output "s3_bucket_name" {
   value = aws_s3_bucket.assets.bucket
 }
 
-# ─── storage ───────────────────────────────────────────────────
-output "image_bucket_name" {
-  description = "이미지 S3 버킷 이름"
-  value       = aws_s3_bucket.images.bucket
-}
-
-output "image_base_url" {
-  description = "CloudFront 이미지 기본 URL"
-  value       = "https://${aws_cloudfront_distribution.main.domain_name}/images"
+output "assets_base_url" {
+  description = "CloudFront 정적 자산 + 이미지 기본 URL"
+  value       = "https://${aws_cloudfront_distribution.main.domain_name}"
 }
 
 # ─── DynamoDB ─────────────────────────────────────────────────────

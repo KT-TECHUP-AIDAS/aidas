@@ -116,9 +116,3 @@ variable "loki_url" {
   type        = string
   sensitive   = true
 }
-
-variable "s3_image_bucket" {
-  description = "이미지 저장용 S3 버킷 이름"
-  type        = string
-  default     = "aidas-images"
-}
