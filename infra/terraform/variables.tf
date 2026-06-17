@@ -67,7 +67,7 @@ variable "github_token" {
 variable "github_owner" {
   description = "GitHub 조직명"
   type        = string
-  default     = "aidas" # 테스트 시 본인 깃헙 계정
+  default     = "KT-TECHUP-AIDAS" # 테스트 시 본인 깃헙 계정
 }
 
 variable "github_repo" {
